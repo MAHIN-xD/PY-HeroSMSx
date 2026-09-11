@@ -33,12 +33,13 @@ MENU_BUTTONS = ["Buy Telegram Number", "Bulk Buy Numbers", "Active Numbers", "Ba
 def format_otp_text(phone: str, code: str) -> str:
     return f"Number: +{phone}\nOTP: {code} | <b>MAH!N</b>"
 
-# God mode async processor to send Telegram message instantly in background
 async def process_webhook_data(aid: str, code: str, sms_text: str):
     row = await db.get_activation_user(aid)
     if not row:
         return
         
+    await db.delete_activation(aid)
+    
     user_id = row[0]
     phone = row[1]
     
@@ -51,12 +52,7 @@ async def process_webhook_data(aid: str, code: str, sms_text: str):
             await bot.send_message(user_id, text, reply_markup=kb.otp_copy_menu(display_code), parse_mode=ParseMode.HTML)
             user = await db.get_user(user_id)
             client = HeroSMSClient(user["api_key"])
-            
-            # Update API and DB simultaneously for max speed
-            await asyncio.gather(
-                client.set_status(aid, 6),
-                db.delete_activation(aid)
-            )
+            await client.set_status(aid, 6)
         except Exception as e:
             logging.error(f"Failed to process webhook for {user_id}: {e}")
 
@@ -77,7 +73,6 @@ async def handle_herosms_webhook(request):
         return web.Response(text="Missing activationId", status=400)
 
     if code or sms_text:
-        # Instantly push to background task and return 200 OK within 0.001s
         asyncio.create_task(process_webhook_data(aid, code, sms_text))
 
     return web.json_response({"status": "success"}, status=200)
@@ -91,7 +86,6 @@ async def is_allowed(user_id: int) -> bool:
     return True
 
 async def poll_sms(bot, chat_id: int, activation_id: str, phone: str, client: HeroSMSClient):
-    # Fallback polling optimized to 1.5 seconds delay to race with webhook
     for _ in range(800):
         await asyncio.sleep(1.5)
         row = await db.get_activation_user(activation_id)
@@ -102,14 +96,12 @@ async def poll_sms(bot, chat_id: int, activation_id: str, phone: str, client: He
             res = await client.get_status(activation_id)
             if isinstance(res, str):
                 if res.startswith("STATUS_OK:"):
+                    await db.delete_activation(activation_id)
+                    
                     code = res.split(":", 1)[1]
                     text = format_otp_text(phone, code)
                     await bot.send_message(chat_id, text, reply_markup=kb.otp_copy_menu(code), parse_mode=ParseMode.HTML)
-                    
-                    await asyncio.gather(
-                        client.set_status(activation_id, 6),
-                        db.delete_activation(activation_id)
-                    )
+                    await client.set_status(activation_id, 6)
                     return
                 elif res.startswith("STATUS_CANCEL"):
                     await db.delete_activation(activation_id)
@@ -297,18 +289,22 @@ async def cb_check_sms(callback: CallbackQuery):
     user = await db.get_user(callback.from_user.id)
     client = HeroSMSClient(user["api_key"])
     row = await db.get_activation_user(aid)
-    phone = row[1] if row else "Unknown"
+    
+    if not row:
+        await callback.answer("This activation is already completed or cancelled.", show_alert=True)
+        return
+        
+    phone = row[1]
 
     res = await client.get_status(aid)
     if isinstance(res, str):
         if res.startswith("STATUS_OK:"):
+            await db.delete_activation(aid)
+            
             code = res.split(":", 1)[1]
             text = format_otp_text(phone, code)
             await callback.message.edit_text(text, reply_markup=kb.otp_copy_menu(code), parse_mode=ParseMode.HTML)
-            await asyncio.gather(
-                client.set_status(aid, 6),
-                db.delete_activation(aid)
-            )
+            await client.set_status(aid, 6)
         elif res.startswith("STATUS_WAIT_CODE"):
             await callback.answer("Still waiting for SMS...", show_alert=True)
         elif res.startswith("STATUS_CANCEL"):
