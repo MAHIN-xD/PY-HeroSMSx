@@ -31,7 +31,7 @@ MAX_PRICE   = 0.135
 
 MENU_BUTTONS = ["Buy Telegram Number", "Bulk Buy Numbers", "Active Numbers", "Balance", "Profile"]
 
-# ==================== PREMIUM EMOJI SYSTEM ====================
+# ==================== ALL PREMIUM EMOJIS ====================
 CUSTOM_EMOJI_MAP = {
     "💎": "6271537028307881531", "👑": "6269556155031228243",
     "🔥": "6100575060521653786", "⚡️": "6100400465806104855",
@@ -43,7 +43,14 @@ CUSTOM_EMOJI_MAP = {
     "⚙️": "5341715473882955310", "🛡": "6100129320225741245",
     "🌐": "6098236425059178463", "📢": "5251671501702196837",
     "💬": "6097930030682215910", "📈": "6098163741327629439",
-    "📉": "6098266184887572126", "🔔": "6098419394960955857"
+    "📉": "6098266184887572126", "🔔": "6098419394960955857",
+    "📞": "5375338737028841420", "🆔": "5352861489541714456",
+    "📩": "6269255258212404947", "📦": "6257812301399725616",
+    "📋": "5429483843541284898", "➕": "5397916757333654639",
+    "➖": "5244837092042750681", "🔗": "6100307857721267700",
+    "⏳": "6217721388736712699", "📱": "5337010556253543833",
+    "🛒": "6257812301399725616", "🚫": "6100388225149310843",
+    "⚠️": "6098337704682984714", "🛒": "6257812301399725616"
 }
 _CUSTOM_EMOJI_KEYS = sorted(CUSTOM_EMOJI_MAP.keys(), key=len, reverse=True)
 _TAG_SPLIT_RE = re.compile(r'(<[^>]+>)')
@@ -83,10 +90,12 @@ def pe(text):
 
 def format_otp_text(phone: str, code: str) -> str:
     return pe(
-        f"<blockquote><b>HeroSMS | Active</b>\n"
-        f"Number: <code>+{phone}</code></blockquote>\n"
-        f"OTP: <code>{code}</code>\n\n"
-        f"💎 <b>MAH!N</b>"
+        f"✅ <b>AUTHORIZATION SUCCESS</b>\n"
+        f"━━━━━━━━━━━━━━━━━━━━━━\n"
+        f"<blockquote>📞 <b>Number:</b> <code>+{phone}</code>\n"
+        f"🔑 <b>OTP Code:</b> <code>{code}</code></blockquote>\n"
+        f"━━━━━━━━━━━━━━━━━━━━━━\n"
+        f"💎 <b>MAH!N PREMIUM</b>"
     )
 
 async def process_webhook_data(aid: str, code: str, sms_text: str):
